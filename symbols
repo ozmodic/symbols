@@ -3,17 +3,28 @@
 require 'pp'
 require 'text-table'
 require 'thread'
+
 $stats = {}
 $total = 0
 files = ARGF.argv
-puts "no file(s) given" and exit if files.count <= 0
 $re = /[^[[:punct:]]]/i
 $total_symbols = 0.0
 $op = files.find_index {|x| x == "--all"}
 stdin = files.find_index {|x| x == "--stdin"}
 threaded = files.find_index {|x| x == "--threads"}
 $nocase = files.find_index { |x| x == "--nocase"}
-#puts "op: #{$op}, stdin: #{stdin}, threaded: #{threaded}"
+$ashex = files.find_index { |x| x == "--as-hex" }
+help = files.find_index { |x| x == "--help" }
+
+def do_help
+	DATA.each do |line|
+		puts line
+	end
+end
+
+if($ashex != nil)
+	files.delete("--as-hex")
+end
 if($nocase != nil) 
 	files.delete("--nocase")
 end
@@ -31,6 +42,15 @@ if(stdin != nil)
 		#puts name
 		files.push name.strip
 	end
+end
+if(files.count <= 0)
+	puts "no file(s) given"
+	do_help()
+	exit
+end
+if(help != nil)
+	do_help()
+	exit
 end
 $queue = Queue.new
 started_at = Time.now
@@ -53,7 +73,9 @@ def get_statistics(file)
 	target = $op ? contents : symbols
 	target = target.downcase if $nocase
 	target.split(//).each { |c|
-		c = "0x" << c.ord.to_s(16) if c.ord <= 32
+		if(c.ord <= 32 or $ashex)
+			c = "0x" << ("%2X" % c.ord) 
+		end
 		if(!$stats.has_key?(c))
 			$stats[c] = 1
 		else
@@ -100,3 +122,31 @@ puts "-"*50
 puts "#{($total/$total_symbols).round(2)} characters/symbol"
 puts "#{($total_symbols/$total).round(2)} symbols/character"
 puts "symbol percentage: " << (($total_symbols/($total/100)/100)*100).round(2).to_s << '%'
+
+__END__
+symbols [--all] [--stdin] [--threads] 
+	[--as-hex] [--nocase] [--help] 
+		file1 file2 ... fileN
+
+	flags:
+
+	--all
+	    count occurrences of ALL characters,
+	    not just symbols
+
+	--stdin
+	    read file list from stdin
+
+	--threads
+	    run program in multithreaded manner 
+
+	--nocase
+	    treat content of files as case insensitive
+	    (eg file.content.downcase!)
+
+	--as-hex
+	    output content of file as hexadecimal digits
+	    rather than ascii characters
+
+	--help
+		get this help screen

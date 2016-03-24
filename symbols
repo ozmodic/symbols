@@ -12,7 +12,11 @@ $total_symbols = 0.0
 $op = files.find_index {|x| x == "--all"}
 stdin = files.find_index {|x| x == "--stdin"}
 threaded = files.find_index {|x| x == "--threads"}
+$nocase = files.find_index { |x| x == "--nocase"}
 #puts "op: #{$op}, stdin: #{stdin}, threaded: #{threaded}"
+if($nocase != nil) 
+	files.delete("--nocase")
+end
 if($op != nil)
 	files.delete("--all")
 end
@@ -47,6 +51,7 @@ def get_statistics(file)
 	symbols = contents.gsub($re,"")
 	$total_symbols += symbols.length
 	target = $op ? contents : symbols
+	target = target.downcase if $nocase
 	target.split(//).each { |c|
 		c = "0x" << c.ord.to_s(16) if c.ord <= 32
 		if(!$stats.has_key?(c))

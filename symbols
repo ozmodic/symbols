@@ -9,35 +9,47 @@ $total = 0
 files = ARGF.argv
 $re = /[^[[:punct:]]]/i
 $total_symbols = 0.0
+
+#switches to modify operation
+#probably switch to getopt eventually
 $op = files.find_index {|x| x == "--all"}
-stdin = files.find_index {|x| x == "--stdin"}
+$gstdin = files.find_index {|x| x == "--stdin"}
 threaded = files.find_index {|x| x == "--threads"}
 $nocase = files.find_index { |x| x == "--nocase"}
 $ashex = files.find_index { |x| x == "--as-hex" }
 help = files.find_index { |x| x == "--help" }
+ffstdin = files.find_index {|x| x == "--files-from-stdin"}
+$debug = files.find_index { |x| x == "--debug" }
 
+#help text
 def do_help
 	DATA.each do |line|
 		puts line
 	end
 end
 
-if($ashex != nil)
+puts "op:#{$op}\nthreads:#{threaded}\nnocase:#{$nocase}\nashex:#{$ashex}\nhelp:#{help}\nstdin:#{$gstdin}\nffstdin:#{ffstdin}" if $debug #switch values
+if($gstdin && ffstdin)
+	puts "please choose either --stdin or --files-from-stdin"
+	exit 0
+end
+
+if($gstdin && threaded)
+	puts "--threads and --stdin are mutually incompatible"
+	exit 0
+end
+	
+
+begin
 	files.delete("--as-hex")
-end
-if($nocase != nil) 
 	files.delete("--nocase")
-end
-if($op != nil)
 	files.delete("--all")
-end
-if(stdin != nil) 
+	files.delete("--files-from-stdin") 
 	files.delete("--stdin")
-end
-if(threaded != nil)
 	files.delete("--threads")
 end
-if(stdin != nil)
+
+if($gstdin or ffstdin)
 	$stdin.each_line do |name|
 		#puts name
 		files.push name.strip
@@ -58,14 +70,19 @@ started_at = Time.now
 files.each { |file|
 	next if (!File.file? file or File.directory? file)
 	$queue.push(file)
-}	
+} if !$gstdin	
 
 
 
 def get_statistics(file)
-	#puts "extracting symbols from #{file}"
-	return if File.directory? file
-	contents = File.read(file)
+	puts "extracting symbols from #{file}" if $debug
+	contents = ""
+	if($gstdin)
+		contents = file
+	else
+		return if File.directory? file
+		contents = File.read(file)
+	end
 	contents = contents.chars.select(&:valid_encoding?).join
 	$total += contents.length
 	symbols = contents.gsub($re,"")
@@ -74,7 +91,7 @@ def get_statistics(file)
 	target = target.downcase if $nocase
 	target.split(//).each { |c|
 		if(c.ord <= 32 or $ashex)
-			c = "0x" << ("%2X" % c.ord) 
+			c = "0x" << ("%02X" % c.ord) 
 		end
 		if(!$stats.has_key?(c))
 			$stats[c] = 1
@@ -100,10 +117,14 @@ if(threaded)
 		end
 	end
 	workers.map(&:join)
-else 
-	files.each { |file| 
-		get_statistics(file)
-	}
+else 	
+	if($gstdin)
+		get_statistics(files.join "\n")
+	else 
+		files.each { |file| 
+			get_statistics(file)
+		}
+	end
 end
 puts "symbol count"
 table = Text::Table.new
@@ -121,12 +142,12 @@ puts "total symbols: #{$total_symbols.to_i}"
 puts "-"*50
 puts "#{($total/$total_symbols).round(2)} characters/symbol"
 puts "#{($total_symbols/$total).round(2)} symbols/character"
-puts "symbol percentage: " << (($total_symbols/($total/100)/100)*100).round(2).to_s << '%'
+puts "symbol percentage: " << (($total_symbols/($total/100.0)/100.0)*100).round(2).to_s << '%'
 
 __END__
-symbols [--all] [--stdin] [--threads] 
-	[--as-hex] [--nocase] [--help] 
-		file1 file2 ... fileN
+symbols [--all] [--stdin] [--threads] [--as-hex] 
+	[--nocase] [--help] [--files-from-stdin] [--debug]
+	__file1__ ... __fileN__
 
 	flags:
 
@@ -134,8 +155,11 @@ symbols [--all] [--stdin] [--threads]
 	    count occurrences of ALL characters,
 	    not just symbols
 
-	--stdin
+	--files-from-stdin
 	    read file list from stdin
+
+	--stdin
+	    analyze content from stdin
 
 	--threads
 	    run program in multithreaded manner 
@@ -150,3 +174,8 @@ symbols [--all] [--stdin] [--threads]
 
 	--help
 		get this help screen
+
+	--debug
+		print debug info
+
+

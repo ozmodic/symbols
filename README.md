@@ -3,9 +3,10 @@ extract symbols from file
 
 usage:
 	
-	symbols [--all] [--stdin] [--threads] 
-		[--as-hex] [--nocase] [--help] 
-			file1 file2 ... fileN
+	
+symbols [--all] [--stdin] [--threads] [--as-hex] 
+	[--nocase] [--help] [--files-from-stdin] [--debug]
+	__file1__ ... __fileN__
 
 	flags:
 
@@ -13,8 +14,11 @@ usage:
 	    count occurrences of ALL characters,
 	    not just symbols
 
-	--stdin
+	--files-from-stdin
 	    read file list from stdin
+
+	--stdin
+	    analyze content from stdin
 
 	--threads
 	    run program in multithreaded manner 
@@ -29,7 +33,11 @@ usage:
 
 	--help
 		get this help screen
-	
+
+	--debug
+		print debug info
+
+
 sample output (ran on LICENSE file)
 	
 	oz@ozmo:~/git/symbols$ symbols --all --nocase LICENSE
@@ -133,3 +141,44 @@ sample output (ran on LICENSE file)
 	48.6 characters/symbol
 	0.02 symbols/character
 	symbol percentage: 2.5%
+
+	-------------------------------------------------
+	
+	oz@ozmo:~/git/symbols$ symbols --all --stdin
+	weg#Tg2j3i3htg3iHTIy3ghyITYG#IH@IRFHG#
+	fweh@#ITHgihw3TIY#I@H^TY#@IYTHG
+
+	symbol count
+	+--------+-------+------------+
+	| symbol | count | percentage |
+	+--------+-------+------------+
+	| I      | 8     | 11.4286%   |
+	| T      | 7     | 10.0%      |
+	| H      | 6     | 8.5714%    |
+	| #      | 6     | 8.5714%    |
+	| g      | 5     | 7.1429%    |
+	| 3      | 5     | 7.1429%    |
+	| h      | 4     | 5.7143%    |
+	| Y      | 4     | 5.7143%    |
+	| @      | 4     | 5.7143%    |
+	| w      | 3     | 4.2857%    |
+	| i      | 3     | 4.2857%    |
+	| G      | 3     | 4.2857%    |
+	| e      | 2     | 2.8571%    |
+	| y      | 2     | 2.8571%    |
+	| j      | 1     | 1.4286%    |
+	| R      | 1     | 1.4286%    |
+	| 2      | 1     | 1.4286%    |
+	| F      | 1     | 1.4286%    |
+	| 0x0A   | 1     | 1.4286%    |
+	| f      | 1     | 1.4286%    |
+	| t      | 1     | 1.4286%    |
+	| ^      | 1     | 1.4286%    |
+	+--------+-------+------------+
+	--------------------------------------------------
+	total characters: 70
+	total symbols: 10
+	--------------------------------------------------
+	7.0 characters/symbol
+	0.14 symbols/character
+	symbol percentage: 14.29%

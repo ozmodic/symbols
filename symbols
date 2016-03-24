@@ -85,7 +85,7 @@ table.rows = []
 divisor = $total/100.0
 puts divisor
 $stats.sort_by {|sym, cnt| cnt }.reverse.each { |sym, count|
-	puts "#{sym} #{count}"
+	#puts "#{sym} #{count}"
 	table.rows << [sym, count, (((count/divisor)/100)*100).round(4).to_s << '%']
 }
 puts table.to_s

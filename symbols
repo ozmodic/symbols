@@ -138,11 +138,11 @@ $stats.sort_by {|sym, cnt| cnt }.reverse.each { |sym, count|
 puts table.to_s
 puts "-"*50 << "\n"
 puts "total characters: #{$total}"
-puts "total symbols: #{$total_symbols.to_i}"
+puts "total symbols: #{$total_symbols.to_i}" if $total_symbols > 0
 puts "-"*50
-puts "#{($total/$total_symbols).round(2)} characters/symbol"
-puts "#{($total_symbols/$total).round(2)} symbols/character"
-puts "symbol percentage: " << (($total_symbols/($total/100.0)/100.0)*100).round(2).to_s << '%'
+puts "#{($total/$total_symbols).round(2)} characters/symbol" if $total_symbols > 0
+puts "#{($total_symbols/$total).round(2)} symbols/character" if $total_symbols > 0
+puts "symbol percentage: " << (($total_symbols/($total/100.0)/100.0)*100).round(2).to_s << '%' if $total_symbols > 0
 
 __END__
 symbols [--all] [--stdin] [--threads] [--as-hex] 

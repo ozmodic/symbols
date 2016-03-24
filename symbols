@@ -1,0 +1,98 @@
+#!/usr/bin/env ruby
+
+require 'pp'
+require 'text-table'
+require 'thread'
+$stats = {}
+$total = 0
+files = ARGF.argv
+puts "no file(s) given" and exit if files.count <= 0
+$re = /[^[[:punct:]]]/i
+$total_symbols = 0.0
+$op = files.find_index {|x| x == "--all"}
+stdin = files.find_index {|x| x == "--stdin"}
+threaded = files.find_index {|x| x == "--threads"}
+#puts "op: #{$op}, stdin: #{stdin}, threaded: #{threaded}"
+if($op != nil)
+	files.delete("--all")
+end
+if(stdin != nil) 
+	files.delete("--stdin")
+end
+if(threaded != nil)
+	files.delete("--threads")
+end
+if(stdin != nil)
+	$stdin.each_line do |name|
+		#puts name
+		files.push name.strip
+	end
+end
+$queue = Queue.new
+started_at = Time.now
+
+files.each { |file|
+	next if (!File.file? file or File.directory? file)
+	$queue.push(file)
+}	
+
+
+
+def get_statistics(file)
+	#puts "extracting symbols from #{file}"
+	return if File.directory? file
+	contents = File.read(file)
+	contents = contents.chars.select(&:valid_encoding?).join
+	$total += contents.length
+	symbols = contents.gsub($re,"")
+	$total_symbols += symbols.length
+	target = $op ? contents : symbols
+	target.split(//).each { |c|
+		c = "0x" << c.ord.to_s(16) if c.ord <= 32
+		if(!$stats.has_key?(c))
+			$stats[c] = 1
+		else
+			$stats[c] += 1
+		end
+	}
+end
+
+if(threaded)
+	workers = (0..10).map do 
+		Thread.new do
+			begin
+			  while file = $queue.pop(true)
+			    begin
+				get_statistics(file)			
+			    rescue => e
+				puts e.inspect
+			    end
+			end
+		        rescue ThreadError
+		     	end
+		end
+	end
+	workers.map(&:join)
+else 
+	files.each { |file| 
+		get_statistics(file)
+	}
+end
+puts "symbol count"
+table = Text::Table.new
+table.head = %w{symbol count percentage}
+table.rows = []
+divisor = $total/100.0
+puts divisor
+$stats.sort_by {|sym, cnt| cnt }.reverse.each { |sym, count|
+	puts "#{sym} #{count}"
+	table.rows << [sym, count, (((count/divisor)/100)*100).round(4).to_s << '%']
+}
+puts table.to_s
+puts "-"*50 << "\n"
+puts "total characters: #{$total}"
+puts "total symbols: #{$total_symbols.to_i}"
+puts "-"*50
+puts "#{($total/$total_symbols).round(2)} characters/symbol"
+puts "#{($total_symbols/$total).round(2)} symbols/character"
+puts "symbol percentage: " << (($total_symbols/($total/100)/100)*100).round(2).to_s << '%'
